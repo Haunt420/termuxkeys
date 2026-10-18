@@ -36,16 +36,6 @@ import com.example.model.KeyItem
 import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.MatrixGreenBright
-import com.example.ui.theme.TerminalBg
-import com.example.ui.theme.TerminalBorder
-import com.example.ui.theme.TerminalKeyBg
-import com.example.ui.theme.TerminalKeyBorder
-import com.example.ui.theme.TerminalKeyModifier
-import com.example.ui.theme.TerminalKeyModifierBorder
-import com.example.ui.theme.TerminalKeyPressed
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 
 @Composable
 fun KeyCapButton(
@@ -56,42 +46,42 @@ fun KeyCapButton(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     isEditMode: Boolean = false,
-    isCompact: Boolean = false
+    isCompact: Boolean = false,
+    isTermuxStyle: Boolean = true
 ) {
     var isPressed by remember { mutableStateOf(false) }
-    val isModifier = item.key in listOf("CTRL", "ALT", "ESC", "TAB")
     val hasPopup = item.popup != null && item.popup.key.isNotBlank()
 
     val bgColor = when {
-        isSelected -> MatrixGreenBright.copy(alpha = 0.25f)
-        isPressed -> TerminalKeyPressed
-        isModifier -> TerminalKeyModifier
-        else -> TerminalKeyBg
+        isSelected -> MatrixGreenBright.copy(alpha = 0.28f)
+        isPressed -> Color(0xFF262626)
+        isTermuxStyle -> Color(0xFF000000)
+        else -> Color(0xFF161B22)
     }
 
     val borderColor = when {
         isSelected -> MatrixGreenBright
-        isModifier -> TerminalKeyModifierBorder
-        else -> TerminalKeyBorder
+        isPressed -> Color(0xFF555555)
+        isTermuxStyle -> Color(0xFF1E1E1E)
+        else -> Color(0xFF30363D)
     }
 
     val textColor = when {
         isSelected -> MatrixGreenBright
-        isModifier -> CyberCyan
-        item.key == "ENTER" -> MatrixGreenBright
-        item.key in listOf("UP", "DOWN", "LEFT", "RIGHT") -> MatrixGreenBright
-        else -> TextPrimary
+        else -> Color.White
     }
+
+    val isMultiline = item.effectiveDisplay.contains("\n")
 
     Box(
         modifier = modifier
-            .defaultMinSize(minWidth = if (isCompact) 40.dp else 46.dp, minHeight = if (isCompact) 42.dp else 48.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .defaultMinSize(minWidth = if (isCompact) 36.dp else 42.dp, minHeight = if (isCompact) 34.dp else 40.dp)
+            .clip(RoundedCornerShape(4.dp))
             .background(bgColor)
             .border(
-                width = if (isSelected) 2.dp else 1.dp,
+                width = if (isSelected) 1.5.dp else 0.5.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(4.dp)
             )
             .pointerInput(item.id) {
                 detectDragGestures(
@@ -100,8 +90,7 @@ fun KeyCapButton(
                     onDragCancel = { isPressed = false },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        // Detect swipe-up gesture for popup action
-                        if (dragAmount.y < -25f && hasPopup && onPopupTriggered != null) {
+                        if (dragAmount.y < -20f && hasPopup && onPopupTriggered != null) {
                             onPopupTriggered()
                             isPressed = false
                         }
@@ -111,7 +100,7 @@ fun KeyCapButton(
             .clickable {
                 onClick()
             }
-            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .padding(horizontal = 2.dp, vertical = 2.dp)
             .testTag("keycap_${item.key}"),
         contentAlignment = Alignment.Center
     ) {
@@ -119,15 +108,14 @@ fun KeyCapButton(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Popup indicator badge if configured
-            if (hasPopup) {
+            if (hasPopup && !isTermuxStyle) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(6.dp)
+                            .size(5.dp)
                             .background(AmberAccent, CircleShape)
                     )
                 }
@@ -136,19 +124,20 @@ fun KeyCapButton(
             Text(
                 text = item.effectiveDisplay,
                 color = textColor,
-                fontSize = if (item.effectiveDisplay.length > 5) 10.sp else if (isCompact) 12.sp else 13.sp,
+                fontSize = if (isMultiline) 9.sp else if (item.effectiveDisplay.length > 5) 10.sp else 12.sp,
+                lineHeight = if (isMultiline) 11.sp else 14.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                maxLines = 1,
+                maxLines = if (isMultiline) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
 
-            if (hasPopup && !isCompact && item.popup != null) {
+            if (hasPopup && isEditMode && !isCompact && item.popup != null) {
                 Text(
                     text = "^${item.popup.effectiveDisplay}",
                     color = AmberAccent,
-                    fontSize = 8.sp,
+                    fontSize = 7.sp,
                     fontFamily = FontFamily.Monospace,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

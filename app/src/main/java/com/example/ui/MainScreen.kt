@@ -81,7 +81,7 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Editor, 1: Terminal, 2: Catalog, 3: Reference
+    var selectedTab by remember { mutableIntStateOf(1) } // 0: Editor, 1: Terminal Sandbox, 2: Catalog, 3: Reference
     var showExportSheet by remember { mutableStateOf(false) }
     var showPresetsDialog by remember { mutableStateOf(false) }
     var showCatalogPicker by remember { mutableStateOf(false) }

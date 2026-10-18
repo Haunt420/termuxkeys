@@ -77,8 +77,8 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
     val uiState: StateFlow<TermuxKeysUiState> = _uiState.asStateFlow()
 
     init {
-        // Load initial default preset (Nano Editor Master)
-        val initialPreset = BuiltinPresetsLibrary.presets.first()
+        // Load user's cloned preset from screenshot as default
+        val initialPreset = BuiltinPresetsLibrary.userClonedPreset
         _uiState.update { state ->
             state.copy(
                 rows = initialPreset.rows,
@@ -101,10 +101,11 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun getInitialTerminalLines(): List<TerminalLine> {
         return listOf(
-            TerminalLine("Welcome to Termux! (Preview Sandbox)", isSystem = true),
-            TerminalLine("Working directory: /data/data/com.termux/files/home", isSystem = true),
-            TerminalLine("Type commands or press the extra keys below to test.", isSystem = true),
-            TerminalLine("Try typing 'nano' or press ^O / ^X to test Nano editor simulation.", isSystem = true)
+            TerminalLine("xel and use it in the app.."),
+            TerminalLine("heres my termux ui with kb up, and two rows of extra keys.. Clone it pixel for pixel and use it in the app.."),
+            TerminalLine("› echo heres my termux ui with kb up, and two rows of extra keys.. Clone it pixel for pixel and use it in the app..;echo heres my termux ui with kb up, and two rows of extra keys.. Clone it pixel for pixel and use it in the app..", isCommand = true),
+            TerminalLine("heres my termux ui with kb up, and two rows of extra keys.. Clone it pixel for pixel and use it in the app.."),
+            TerminalLine("heres my termux ui with kb up, and two rows of extra keys.. Clone it pixel for pixel and use it in the app..")
         )
     }
 
@@ -389,7 +390,7 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
     fun executeCommand(rawCommand: String) {
         val cmd = rawCommand.trim()
         val history = _uiState.value.terminalHistory.toMutableList()
-        val promptText = "u0_a123@termux:~$ $rawCommand"
+        val promptText = "› $rawCommand"
         history.add(TerminalLine(promptText, isCommand = true))
 
         val cmdHistory = _uiState.value.commandHistory.toMutableList()

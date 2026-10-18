@@ -6,7 +6,35 @@ import com.example.model.KeyPreset
 
 object BuiltinPresetsLibrary {
 
+    val userClonedPreset = KeyPreset(
+        id = "preset_user_exact_clone",
+        name = "My Termux UI (Pixel Clone)",
+        category = "Custom Setup",
+        description = "Exact pixel-for-pixel layout from user Termux screenshot with 7-column dual row extra keys.",
+        rows = listOf(
+            listOf(
+                KeyItem(key = "TAB", display = "-TAB-\n-GO-", popup = KeyPopup(key = "TAB", display = "TAB")),
+                KeyItem(key = "\\", display = "\\"),
+                KeyItem(key = "PGUP", display = "PGUP"),
+                KeyItem(key = "PASTE", display = "PASTE"),
+                KeyItem(key = "UP", display = "↑"),
+                KeyItem(key = "ls ", display = "LS ›", popup = KeyPopup(key = "ls -la", display = "ls -la")),
+                KeyItem(key = "ALT", display = "ALT")
+            ),
+            listOf(
+                KeyItem(key = "TAB", display = "⇆"),
+                KeyItem(key = "END", display = "END"),
+                KeyItem(key = "PGDN", display = "PGDN"),
+                KeyItem(key = "LEFT", display = "←"),
+                KeyItem(key = "DOWN", display = "↓"),
+                KeyItem(key = "RIGHT", display = "→"),
+                KeyItem(key = "CTRL", display = "CTRL")
+            )
+        )
+    )
+
     val presets: List<KeyPreset> = listOf(
+        userClonedPreset,
         KeyPreset(
             id = "preset_nano_master",
             name = "Nano Editor Master",
