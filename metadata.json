@@ -1,0 +1,6 @@
+{
+  "name": "TermuxKeys Studio",
+  "description": "Visual Termux extra keys configuration editor with interactive terminal sandbox, preset library, exhaustive catalog, and reference manual.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
