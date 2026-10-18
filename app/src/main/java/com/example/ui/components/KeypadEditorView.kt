@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Layers
@@ -72,6 +73,7 @@ fun KeypadEditorView(
     onStyleChanged: (String) -> Unit,
     onOpenPresets: () -> Unit,
     onOpenCatalog: () -> Unit,
+    onOpenBashWizard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -117,14 +119,26 @@ fun KeypadEditorView(
                 )
             }
 
-            OutlinedButton(
-                onClick = onOpenPresets,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan),
-                modifier = Modifier.testTag("manage_presets_btn")
-            ) {
-                Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Presets", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedButton(
+                    onClick = onOpenBashWizard,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AmberAccent),
+                    modifier = Modifier.testTag("editor_bash_wizard_btn")
+                ) {
+                    Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Bash Fn", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                }
+
+                OutlinedButton(
+                    onClick = onOpenPresets,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan),
+                    modifier = Modifier.testTag("manage_presets_btn")
+                ) {
+                    Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Presets", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                }
             }
         }
 

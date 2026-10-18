@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Keyboard
@@ -58,13 +60,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.model.KeyItem
 import com.example.model.KeyPopup
+import com.example.ui.components.BashFunctionWizardDialog
 import com.example.ui.components.CatalogPickerSheet
+import com.example.ui.components.CatalogScreenView
 import com.example.ui.components.ExportBottomSheet
 import com.example.ui.components.KeyInspectorDialog
 import com.example.ui.components.KeypadEditorView
 import com.example.ui.components.PresetsDialog
 import com.example.ui.components.ReferenceHubView
+import com.example.ui.components.ShortcutCreatorSuiteView
 import com.example.ui.components.TerminalSandboxView
+import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.MatrixGreen
 import com.example.ui.theme.MatrixGreenBright
@@ -81,10 +87,12 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var selectedTab by remember { mutableIntStateOf(1) } // 0: Editor, 1: Terminal Sandbox, 2: Catalog, 3: Reference
+    // Tab 0: Sandbox (Cloned Termux UI), Tab 1: Editor, Tab 2: Catalog, Tab 3: Creator Suite, Tab 4: Reference
+    var selectedTab by remember { mutableIntStateOf(0) }
     var showExportSheet by remember { mutableStateOf(false) }
     var showPresetsDialog by remember { mutableStateOf(false) }
     var showCatalogPicker by remember { mutableStateOf(false) }
+    var showBashWizardDialog by remember { mutableStateOf(false) }
 
     // Handle feedback toasts
     LaunchedEffect(uiState.feedbackMessage) {
@@ -157,23 +165,8 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Keyboard, contentDescription = "Editor") },
-                    label = { Text("Editor", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MatrixGreenBright,
-                        selectedTextColor = MatrixGreenBright,
-                        indicatorColor = MatrixGreen.copy(alpha = 0.25f),
-                        unselectedIconColor = TextSecondary,
-                        unselectedTextColor = TextSecondary
-                    ),
-                    modifier = Modifier.testTag("nav_tab_editor")
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
                     icon = { Icon(Icons.Default.Terminal, contentDescription = "Sandbox") },
-                    label = { Text("Sandbox", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
+                    label = { Text("Sandbox", fontFamily = FontFamily.Monospace, fontSize = 9.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MatrixGreenBright,
                         selectedTextColor = MatrixGreenBright,
@@ -185,10 +178,25 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
                 )
 
                 NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = { Icon(Icons.Default.Keyboard, contentDescription = "Editor") },
+                    label = { Text("Editor", fontFamily = FontFamily.Monospace, fontSize = 9.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MatrixGreenBright,
+                        selectedTextColor = MatrixGreenBright,
+                        indicatorColor = MatrixGreen.copy(alpha = 0.25f),
+                        unselectedIconColor = TextSecondary,
+                        unselectedTextColor = TextSecondary
+                    ),
+                    modifier = Modifier.testTag("nav_tab_editor")
+                )
+
+                NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = { Icon(Icons.Default.List, contentDescription = "Catalog") },
-                    label = { Text("Catalog", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
+                    label = { Text("Catalog", fontFamily = FontFamily.Monospace, fontSize = 9.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = CyberCyan,
                         selectedTextColor = CyberCyan,
@@ -202,8 +210,23 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
+                    icon = { Icon(Icons.Default.Build, contentDescription = "Creator Suite") },
+                    label = { Text("Creator", fontFamily = FontFamily.Monospace, fontSize = 9.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = AmberAccent,
+                        selectedTextColor = AmberAccent,
+                        indicatorColor = AmberAccent.copy(alpha = 0.25f),
+                        unselectedIconColor = TextSecondary,
+                        unselectedTextColor = TextSecondary
+                    ),
+                    modifier = Modifier.testTag("nav_tab_creator")
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
                     icon = { Icon(Icons.Default.Book, contentDescription = "Reference") },
-                    label = { Text("Reference", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
+                    label = { Text("Reference", fontFamily = FontFamily.Monospace, fontSize = 9.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = CyberCyan,
                         selectedTextColor = CyberCyan,
@@ -223,27 +246,7 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
         ) {
             when (selectedTab) {
                 0 -> {
-                    // Visual Keypad Editor
-                    KeypadEditorView(
-                        rows = uiState.rows,
-                        style = uiState.style,
-                        selectedRow = uiState.selectedRowIndex,
-                        selectedCol = uiState.selectedColIndex,
-                        onSelectKey = { r, c -> viewModel.selectKeyForEdit(r, c) },
-                        onAddKeyToRow = { rowIndex ->
-                            viewModel.selectKeyForEdit(rowIndex, 0)
-                            showCatalogPicker = true
-                        },
-                        onAddNewRow = { viewModel.addNewRow() },
-                        onRemoveRow = { rowIndex -> viewModel.removeRow(rowIndex) },
-                        onStyleChanged = { style -> viewModel.setStyle(style) },
-                        onOpenPresets = { showPresetsDialog = true },
-                        onOpenCatalog = { showCatalogPicker = true }
-                    )
-                }
-
-                1 -> {
-                    // Interactive Terminal Sandbox & Nano Simulator
+                    // Pixel-Cloned Interactive Terminal Sandbox & KB Up
                     TerminalSandboxView(
                         mode = uiState.terminalMode,
                         history = uiState.terminalHistory,
@@ -263,23 +266,63 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
                     )
                 }
 
+                1 -> {
+                    // Visual Keypad Multi-Row Editor
+                    KeypadEditorView(
+                        rows = uiState.rows,
+                        style = uiState.style,
+                        selectedRow = uiState.selectedRowIndex,
+                        selectedCol = uiState.selectedColIndex,
+                        onSelectKey = { r, c -> viewModel.selectKeyForEdit(r, c) },
+                        onAddKeyToRow = { rowIndex ->
+                            viewModel.selectKeyForEdit(rowIndex, 0)
+                            showCatalogPicker = true
+                        },
+                        onAddNewRow = { viewModel.addNewRow() },
+                        onRemoveRow = { rowIndex -> viewModel.removeRow(rowIndex) },
+                        onStyleChanged = { style -> viewModel.setStyle(style) },
+                        onOpenPresets = { showPresetsDialog = true },
+                        onOpenCatalog = { selectedTab = 2 },
+                        onOpenBashWizard = { showBashWizardDialog = true }
+                    )
+                }
+
                 2 -> {
-                    // Exhaustive Shortcuts & Functions Catalog
-                    com.example.ui.components.CatalogPickerSheet(
+                    // Full-Screen Compose Searchable Key & Shortcut Catalog
+                    CatalogScreenView(
                         items = uiState.filteredCatalog,
                         searchQuery = uiState.catalogSearch,
                         selectedCategory = uiState.selectedCatalogCategory,
+                        totalRows = uiState.rows.size,
                         onSearchChanged = { viewModel.onCatalogSearchChanged(it) },
                         onCategorySelected = { viewModel.onCatalogCategorySelected(it) },
-                        onInsertKey = { keyItem ->
-                            viewModel.addKeyToActiveOrFirstRow(keyItem)
-                            selectedTab = 0 // Switch back to editor
+                        onAddKeyToRow = { keyItem, targetRow ->
+                            viewModel.addKeyToRow(targetRow, keyItem)
                         },
-                        onDismiss = { selectedTab = 0 }
+                        onTestKeyInTerminal = { keyString ->
+                            viewModel.onExtraKeyTapped(KeyItem(key = keyString, display = keyString))
+                            selectedTab = 0 // Switch to sandbox to see output
+                        },
+                        onOpenBashWizard = { showBashWizardDialog = true }
                     )
                 }
 
                 3 -> {
+                    // Highly Instructional Stepwise Shortcut Creator Tutorial Suite
+                    ShortcutCreatorSuiteView(
+                        onAddKeyToLayout = { keyItem, targetRow ->
+                            viewModel.addKeyToRow(targetRow, keyItem)
+                        },
+                        onTestInTerminal = { command ->
+                            viewModel.onExtraKeyTapped(KeyItem(key = command, display = command))
+                            selectedTab = 0 // Switch to sandbox to see output
+                        },
+                        totalRows = uiState.rows.size,
+                        onOpenBashWizardDialog = { showBashWizardDialog = true }
+                    )
+                }
+
+                4 -> {
                     // Exhaustive Reference Material Hub
                     ReferenceHubView(
                         selectedTopicId = uiState.selectedReferenceTopicId,
@@ -316,7 +359,7 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
         )
     }
 
-    // Modal: Catalog Picker (when adding a key from inspector)
+    // Modal: Quick Catalog Picker
     if (showCatalogPicker) {
         CatalogPickerSheet(
             items = uiState.filteredCatalog,
@@ -357,6 +400,22 @@ fun MainScreen(viewModel: TermuxKeysViewModel = viewModel()) {
             rows = uiState.rows,
             style = uiState.style,
             onDismiss = { showExportSheet = false }
+        )
+    }
+
+    // Modal: Multi-Step Bash Function Wizard Dialog Suite
+    if (showBashWizardDialog) {
+        BashFunctionWizardDialog(
+            totalRows = uiState.rows.size,
+            onSaveShortcut = { keyItem, targetRow ->
+                viewModel.addKeyToRow(targetRow, keyItem)
+                showBashWizardDialog = false
+            },
+            onTestInTerminal = { command ->
+                viewModel.onExtraKeyTapped(KeyItem(key = command, display = command))
+                selectedTab = 0 // Switch to sandbox so user can see output in terminal!
+            },
+            onDismiss = { showBashWizardDialog = false }
         )
     }
 }
