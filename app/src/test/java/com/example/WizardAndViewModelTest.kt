@@ -1,6 +1,7 @@
 package com.example
 
 import android.app.Application
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -8,9 +9,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import androidx.test.core.app.ApplicationProvider
 import com.example.model.KeyItem
 import com.example.ui.components.BashFunctionWizardDialog
+import com.example.ui.components.KeypadEditorView
 import com.example.ui.components.StepwiseShortcutWizard
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.TermuxKeysViewModel
@@ -51,22 +55,18 @@ class WizardAndViewModelTest {
         }
 
         composeRule.waitForIdle()
-        // Step 1 Next button is pinned and immediately displayed without scrolling
         composeRule.onNodeWithTag("wizard_dialog_next_btn").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        // Step 2: verify syntax button and advance to Step 3
         composeRule.onNodeWithTag("wizard_verify_syntax_btn").performScrollTo().assertIsDisplayed().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("wizard_dialog_next_btn").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        // Step 3: keycap label input is shown and advances to Step 4
         composeRule.onNodeWithTag("wizard_key_label_input").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("wizard_dialog_next_btn").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        // Step 4: Save to Row button deploys the shortcut
         composeRule.onNodeWithTag("wizard_save_to_layout_btn").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
@@ -93,7 +93,6 @@ class WizardAndViewModelTest {
         composeRule.onNodeWithTag("wizard_dialog_next_btn").performClick()
         composeRule.waitForIdle()
 
-        // Remains on Step 1 and displays inline validation feedback
         composeRule.onNodeWithText("Step 1 of 4", substring = true).assertIsDisplayed()
     }
 
@@ -113,11 +112,9 @@ class WizardAndViewModelTest {
         }
 
         composeRule.waitForIdle()
-        // Sticky Next button is visible on Step 1 without needing to scroll past cards
         composeRule.onNodeWithTag("wizard_next_step_btn").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
-        // Should now be on Step 2 where syntax verification button is available
         composeRule.onNodeWithTag("verify_command_logic_btn").performScrollTo().assertIsDisplayed()
     }
 
@@ -135,5 +132,77 @@ class WizardAndViewModelTest {
         val historyText = vm.uiState.value.terminalHistory.joinToString("\n") { it.text }
         assertTrue(historyText.contains("Running custom function 'greet'"))
         assertTrue(historyText.contains("Hello Termux"))
+    }
+
+    @Test
+    fun `viewModel moveKey reorders within row and across rows accurately`() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val vm = TermuxKeysViewModel(app)
+
+        val row0Before = vm.uiState.value.rows[0]
+        val row1Before = vm.uiState.value.rows[1]
+        val firstKey = row0Before[0]
+        val secondKey = row0Before[1]
+        val thirdKey = row0Before[2]
+
+        // Move first key to after third key (insertIndex = 3 in Row 0)
+        vm.moveKey(fromRow = 0, fromCol = 0, toRow = 0, insertIndex = 3)
+        val row0AfterIntra = vm.uiState.value.rows[0]
+        assertEquals(secondKey.id, row0AfterIntra[0].id)
+        assertEquals(thirdKey.id, row0AfterIntra[1].id)
+        assertEquals(firstKey.id, row0AfterIntra[2].id)
+
+        // Move it across to Row 1 at index 1
+        vm.moveKey(fromRow = 0, fromCol = 2, toRow = 1, insertIndex = 1)
+        val row0AfterCross = vm.uiState.value.rows[0]
+        val row1AfterCross = vm.uiState.value.rows[1]
+        assertEquals(row0Before.size - 1, row0AfterCross.size)
+        assertEquals(row1Before.size + 1, row1AfterCross.size)
+        assertEquals(firstKey.id, row1AfterCross[1].id)
+    }
+
+    @Test
+    fun `keypadEditor arrange mode supports drag and drop reordering`() {
+        val row0 = listOf(
+            KeyItem(id = "k1", key = "ESC", display = "ESC"),
+            KeyItem(id = "k2", key = "TAB", display = "TAB"),
+            KeyItem(id = "k3", key = "CTRL", display = "CTRL")
+        )
+        var movedFromCol = -1
+        var movedToCol = -1
+
+        composeRule.setContent {
+            MyApplicationTheme {
+                KeypadEditorView(
+                    rows = listOf(row0),
+                    style = "default",
+                    selectedRow = null,
+                    selectedCol = null,
+                    onSelectKey = { _, _ -> },
+                    onAddKeyToRow = {},
+                    onAddNewRow = {},
+                    onRemoveRow = {},
+                    onStyleChanged = {},
+                    onOpenPresets = {},
+                    onOpenCatalog = {},
+                    onMoveKey = { _, fromCol, _, insertIndex ->
+                        movedFromCol = fromCol
+                        movedToCol = insertIndex
+                    }
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("toggle_arrange_mode_btn").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("keycap_ESC").performTouchInput {
+            swipeRight(startX = center.x, endX = center.x + 220f, durationMillis = 300)
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(0, movedFromCol)
+        assertTrue(movedToCol >= 2)
     }
 }

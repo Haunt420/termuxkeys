@@ -73,6 +73,25 @@ fun KeyCapButton(
 
     val isMultiline = item.effectiveDisplay.contains("\n")
 
+    val swipePopupModifier = if (hasPopup && onPopupTriggered != null) {
+        Modifier.pointerInput(item.id) {
+            detectDragGestures(
+                onDragStart = { isPressed = true },
+                onDragEnd = { isPressed = false },
+                onDragCancel = { isPressed = false },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    if (dragAmount.y < -20f) {
+                        onPopupTriggered()
+                        isPressed = false
+                    }
+                }
+            )
+        }
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = modifier
             .defaultMinSize(minWidth = if (isCompact) 34.dp else 42.dp, minHeight = if (isCompact) 30.dp else 38.dp)
@@ -83,20 +102,7 @@ fun KeyCapButton(
                 color = borderColor,
                 shape = RoundedCornerShape(4.dp)
             )
-            .pointerInput(item.id) {
-                detectDragGestures(
-                    onDragStart = { isPressed = true },
-                    onDragEnd = { isPressed = false },
-                    onDragCancel = { isPressed = false },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        if (dragAmount.y < -20f && hasPopup && onPopupTriggered != null) {
-                            onPopupTriggered()
-                            isPressed = false
-                        }
-                    }
-                )
-            }
+            .then(swipePopupModifier)
             .clickable {
                 onClick()
             }

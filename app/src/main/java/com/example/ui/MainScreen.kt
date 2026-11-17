@@ -469,7 +469,10 @@ private fun MainTabContent(
                 onShellInputChange = { text -> viewModel.onShellInputChange(text) },
                 onExecuteCommand = { viewModel.executeShellInput() },
                 onKeyTapped = { keyItem, isPopup -> viewModel.onExtraKeyTapped(keyItem, isPopup) },
-                onClearTerminal = { viewModel.executeCommand("clear") }
+                onClearTerminal = { viewModel.executeCommand("clear") },
+                onMoveKey = { fromRow, fromCol, toRow, insertIndex ->
+                    viewModel.moveKey(fromRow, fromCol, toRow, insertIndex)
+                }
             )
         }
 
@@ -489,7 +492,10 @@ private fun MainTabContent(
                 onStyleChanged = { style -> viewModel.setStyle(style) },
                 onOpenPresets = onShowPresetsDialog,
                 onOpenCatalog = { onSelectTab(2) },
-                onOpenBashWizard = onShowBashWizard
+                onOpenBashWizard = onShowBashWizard,
+                onMoveKey = { fromRow, fromCol, toRow, insertIndex ->
+                    viewModel.moveKey(fromRow, fromCol, toRow, insertIndex)
+                }
             )
         }
 

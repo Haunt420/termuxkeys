@@ -250,6 +250,48 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /**
+     * Moves a key from (fromRow, fromCol) to target row [toRow] at visual insertion slot [insertIndex]
+     * (0..targetRow.size before removal). Works for both intra-row and cross-row drag-and-drop.
+     */
+    fun moveKey(fromRow: Int, fromCol: Int, toRow: Int, insertIndex: Int) {
+        val currentRows = _uiState.value.rows.map { it.toMutableList() }.toMutableList()
+        if (fromRow !in currentRows.indices || toRow !in currentRows.indices) return
+        if (fromCol !in currentRows[fromRow].indices) return
+
+        val clampedInsert = insertIndex.coerceIn(0, currentRows[toRow].size)
+        if (fromRow == toRow) {
+            val targetIndex = if (clampedInsert > fromCol) clampedInsert - 1 else clampedInsert
+            if (targetIndex == fromCol) return
+            val moved = currentRows[fromRow].removeAt(fromCol)
+            currentRows[fromRow].add(targetIndex.coerceIn(0, currentRows[fromRow].size), moved)
+            _uiState.update {
+                it.copy(
+                    rows = currentRows,
+                    selectedRowIndex = null,
+                    selectedColIndex = null,
+                    editingKey = null,
+                    nanoBuffer = generateNanoInitialBuffer(currentRows),
+                    feedbackMessage = "Moved '${moved.effectiveDisplay}'"
+                )
+            }
+        } else {
+            val moved = currentRows[fromRow].removeAt(fromCol)
+            val destCol = clampedInsert.coerceIn(0, currentRows[toRow].size)
+            currentRows[toRow].add(destCol, moved)
+            _uiState.update {
+                it.copy(
+                    rows = currentRows,
+                    selectedRowIndex = null,
+                    selectedColIndex = null,
+                    editingKey = null,
+                    nanoBuffer = generateNanoInitialBuffer(currentRows),
+                    feedbackMessage = "Moved '${moved.effectiveDisplay}' to Row ${toRow + 1}"
+                )
+            }
+        }
+    }
+
     fun addNewRow(initialKeys: List<KeyItem> = emptyList()) {
         if (_uiState.value.rows.size >= 4) {
             _uiState.update { it.copy(feedbackMessage = "Termux supports up to 4 rows of extra keys") }

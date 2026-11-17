@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.FilterChip
@@ -88,14 +89,16 @@ fun TerminalSandboxView(
     onExecuteCommand: () -> Unit,
     onKeyTapped: (KeyItem, Boolean) -> Unit,
     onClearTerminal: () -> Unit,
+    onMoveKey: (fromRow: Int, fromCol: Int, toRow: Int, insertIndex: Int) -> Unit = { _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     val isSystemImeVisible = WindowInsets.ime.getBottom(density) > 0
 
-    // Simulated soft keyboard toggle ("KB Up" / "KB Down")
+    // Simulated soft keyboard toggle ("KB Up" / "KB Down") & Live Extra Keys drag-arrange mode
     var isKeyboardUp by remember { mutableStateOf(true) }
+    var isArrangeMode by remember { mutableStateOf(false) }
 
     // Intercept KEYBOARD extra key to actually toggle simulated keyboard visibility
     val handleKeyTap: (KeyItem, Boolean) -> Unit = { item, isPopup ->
@@ -149,7 +152,9 @@ fun TerminalSandboxView(
                         mode = mode,
                         isKeyboardUp = isKeyboardUp,
                         isSystemImeVisible = isSystemImeVisible,
+                        isArrangeMode = isArrangeMode,
                         onToggleKeyboard = { isKeyboardUp = !isKeyboardUp },
+                        onToggleArrangeMode = { isArrangeMode = !isArrangeMode },
                         onModeChanged = onModeChanged,
                         onClearTerminal = onClearTerminal,
                         isCompact = true
@@ -195,10 +200,24 @@ fun TerminalSandboxView(
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
                         ) {
+                            if (isArrangeMode) {
+                                Text(
+                                    text = "Drag keys to reorder • Tap Done when finished",
+                                    color = CyberCyan,
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF0A141E))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                             LiveExtraKeysBar(
                                 rows = keysLayout,
                                 onKeyTapped = handleKeyTap,
-                                isCompact = true
+                                isCompact = true,
+                                isArrangeMode = isArrangeMode,
+                                onMoveKey = onMoveKey
                             )
                             TermuxSoftKeyboard(
                                 onCharTyped = { char -> onShellInputChange(shellInput + char) },
@@ -221,7 +240,9 @@ fun TerminalSandboxView(
                     mode = mode,
                     isKeyboardUp = isKeyboardUp,
                     isSystemImeVisible = isSystemImeVisible,
+                    isArrangeMode = isArrangeMode,
                     onToggleKeyboard = { isKeyboardUp = !isKeyboardUp },
+                    onToggleArrangeMode = { isArrangeMode = !isArrangeMode },
                     onModeChanged = onModeChanged,
                     onClearTerminal = onClearTerminal,
                     isCompact = isCompactVertical
@@ -246,11 +267,26 @@ fun TerminalSandboxView(
                         .fillMaxWidth()
                 )
 
+                if (isArrangeMode) {
+                    Text(
+                        text = "Drag extra keys to rearrange • Tap Arrange when done",
+                        color = CyberCyan,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0A141E))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+
                 // Live Extra Keys Bar always sits cleanly above whichever keyboard is active
                 LiveExtraKeysBar(
                     rows = keysLayout,
                     onKeyTapped = handleKeyTap,
-                    isCompact = isCompactVertical || isSystemImeVisible
+                    isCompact = isCompactVertical || isSystemImeVisible,
+                    isArrangeMode = isArrangeMode,
+                    onMoveKey = onMoveKey
                 )
 
                 // Simulated Soft Keyboard yields automatically when Android System IME is active
@@ -276,7 +312,9 @@ private fun TerminalControlBar(
     mode: TerminalMode,
     isKeyboardUp: Boolean,
     isSystemImeVisible: Boolean,
+    isArrangeMode: Boolean,
     onToggleKeyboard: () -> Unit,
+    onToggleArrangeMode: () -> Unit,
     onModeChanged: (TerminalMode) -> Unit,
     onClearTerminal: () -> Unit,
     isCompact: Boolean
@@ -311,6 +349,30 @@ private fun TerminalControlBar(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            FilterChip(
+                selected = isArrangeMode,
+                onClick = onToggleArrangeMode,
+                label = {
+                    Text(
+                        text = if (isArrangeMode) "Done" else "Arrange",
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.DragIndicator,
+                        contentDescription = "Rearrange extra keys",
+                        modifier = Modifier.size(12.dp)
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = CyberCyan.copy(alpha = 0.25f),
+                    selectedLabelColor = CyberCyan
+                ),
+                modifier = Modifier.height(32.dp).testTag("sandbox_arrange_keys_btn")
+            )
+
             if (!isSystemImeVisible) {
                 FilterChip(
                     selected = isKeyboardUp,
