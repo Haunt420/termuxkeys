@@ -1,25 +1,31 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -41,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -79,63 +86,38 @@ fun PresetsDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = TerminalSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, TerminalBorder)
+                .background(Color.Black.copy(alpha = 0.65f))
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .imePadding()
+                .padding(8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Preset Library",
-                            color = TextPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "Pre-configured and user-saved key sets",
-                            color = TextSecondary,
-                            fontSize = 12.sp
-                        )
-                    }
+            BoxWithConstraints {
+                val isCompact = maxHeight < 460.dp
 
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag("dismiss_presets_dialog")
-                    ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
-                    }
-                }
-
-                HorizontalDivider(color = TerminalBorder)
-
-                // Save Current Preset Toggle Card
-                Box(
+                Surface(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(TerminalSurfaceVariant)
-                        .border(1.dp, TerminalBorder, RoundedCornerShape(10.dp))
-                        .padding(12.dp)
+                        .widthIn(max = 740.dp)
+                        .fillMaxSize(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = TerminalSurface,
+                    border = BorderStroke(1.dp, TerminalBorder)
                 ) {
-                    if (!isSavingMode) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(if (isCompact) 10.dp else 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 10.dp)
+                    ) {
+                        // Header
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -143,71 +125,80 @@ fun PresetsDialog(
                         ) {
                             Column {
                                 Text(
-                                    text = "Save Active Configuration",
+                                    text = "Preset Library",
                                     color = TextPrimary,
-                                    fontSize = 13.sp,
+                                    fontSize = if (isCompact) 15.sp else 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace
                                 )
                                 Text(
-                                    text = "Store current layout as a custom preset",
+                                    text = "Pre-configured and user-saved key sets",
                                     color = TextSecondary,
                                     fontSize = 11.sp
                                 )
                             }
 
-                            Button(
-                                onClick = { isSavingMode = true },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = CyberCyan,
-                                    contentColor = TerminalBg
-                                ),
-                                modifier = Modifier.testTag("start_save_preset_btn")
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(36.dp).testTag("dismiss_presets_dialog")
                             ) {
-                                Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Save Current", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
                             }
                         }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = "Save Layout as Custom Preset",
-                                color = MatrixGreenBright,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
 
-                            OutlinedTextField(
-                                value = saveName,
-                                onValueChange = { saveName = it },
-                                label = { Text("Preset Name") },
-                                placeholder = { Text("e.g. My Python & Git Setup") },
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MatrixGreenBright,
-                                    unfocusedBorderColor = TerminalBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                        HorizontalDivider(color = TerminalBorder)
 
-                            OutlinedTextField(
-                                value = saveDesc,
-                                onValueChange = { saveDesc = it },
-                                label = { Text("Description") },
-                                placeholder = { Text("Short description of this layout") },
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MatrixGreenBright,
-                                    unfocusedBorderColor = TerminalBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                        if (isSavingMode) {
+                            // Dedicated scrollable save form so Save/Cancel buttons remain reachable when IME is open
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(TerminalSurfaceVariant)
+                                    .border(1.dp, TerminalBorder, RoundedCornerShape(10.dp))
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "Save Layout as Custom Preset",
+                                    color = MatrixGreenBright,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+
+                                OutlinedTextField(
+                                    value = saveName,
+                                    onValueChange = { saveName = it },
+                                    label = { Text("Preset Name") },
+                                    placeholder = { Text("e.g. My Python & Git Setup") },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MatrixGreenBright,
+                                        unfocusedBorderColor = TerminalBorder,
+                                        focusedTextColor = TextPrimary,
+                                        unfocusedTextColor = TextPrimary
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                OutlinedTextField(
+                                    value = saveDesc,
+                                    onValueChange = { saveDesc = it },
+                                    label = { Text("Description") },
+                                    placeholder = { Text("Short description of this layout") },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MatrixGreenBright,
+                                        unfocusedBorderColor = TerminalBorder,
+                                        focusedTextColor = TextPrimary,
+                                        unfocusedTextColor = TextPrimary
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -240,27 +231,69 @@ fun PresetsDialog(
                                     Text("Save Preset", fontWeight = FontWeight.Bold)
                                 }
                             }
-                        }
-                    }
-                }
+                        } else {
+                            // Save Current Preset Trigger Bar
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(TerminalSurfaceVariant)
+                                    .border(1.dp, TerminalBorder, RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Save Active Configuration",
+                                        color = TextPrimary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                    Text(
+                                        text = "Store current layout as a custom preset",
+                                        color = TextSecondary,
+                                        fontSize = 10.sp
+                                    )
+                                }
 
-                // Presets List
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(presets, key = { it.id }) { preset ->
-                        PresetCard(
-                            preset = preset,
-                            isActive = preset.name == activePresetName,
-                            onLoad = {
-                                onLoadPreset(preset)
-                                onDismiss()
-                            },
-                            onDelete = if (preset.isCustom) {
-                                { onDeleteCustomPreset(preset.id) }
-                            } else null
-                        )
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Button(
+                                    onClick = { isSavingMode = true },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = CyberCyan,
+                                        contentColor = TerminalBg
+                                    ),
+                                    modifier = Modifier.testTag("start_save_preset_btn")
+                                ) {
+                                    Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Save Current", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            // Presets List
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(presets, key = { it.id }) { preset ->
+                                    PresetCard(
+                                        preset = preset,
+                                        isActive = preset.name == activePresetName,
+                                        onLoad = {
+                                            onLoadPreset(preset)
+                                            onDismiss()
+                                        },
+                                        onDelete = if (preset.isCustom) {
+                                            { onDeleteCustomPreset(preset.id) }
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -331,7 +364,6 @@ fun PresetCard(
                 lineHeight = 15.sp
             )
 
-            // Miniature layout preview row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

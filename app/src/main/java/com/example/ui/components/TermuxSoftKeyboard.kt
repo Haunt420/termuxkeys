@@ -7,12 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -34,21 +32,25 @@ fun TermuxSoftKeyboard(
     onCharTyped: (String) -> Unit,
     onBackspace: () -> Unit,
     onEnter: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isCompact: Boolean = false
 ) {
     var isShifted by remember { mutableStateOf(false) }
+    var isSymbolMode by remember { mutableStateOf(false) }
 
     val keyBg = Color(0xFF0D1219)
     val keyBorder = Color(0xFF1E2836)
     val textCyan = Color(0xFF40C4FF)
-    val symbolMuted = Color(0xFF6B7D96)
+
+    val keyHeight = if (isCompact) 26.dp else 34.dp
+    val rowSpacing = if (isCompact) 2.dp else 3.dp
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(Color(0xFF000000))
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+            .padding(horizontal = 4.dp, vertical = if (isCompact) 2.dp else 4.dp),
+        verticalArrangement = Arrangement.spacedBy(rowSpacing)
     ) {
         // Row 1: Number Row (1 2 3 4 5 6 7 8 9 0)
         Row(
@@ -63,13 +65,15 @@ fun TermuxSoftKeyboard(
                     textColor = textCyan,
                     bgColor = keyBg,
                     borderColor = keyBorder,
+                    keyHeight = keyHeight,
+                    isCompact = isCompact,
                     modifier = Modifier.weight(1f),
                     onClick = { onCharTyped(num) }
                 )
             }
         }
 
-        // Row 2: Q W E R T Y U I O P with secondary symbols % ^ ~ | [ ] < > { }
+        // Row 2: Q..P or Symbols
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -77,138 +81,152 @@ fun TermuxSoftKeyboard(
             val letters = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
             val syms = listOf("%", "^", "~", "|", "[", "]", "<", ">", "{", "}")
             for (i in letters.indices) {
-                val char = if (isShifted) letters[i].uppercase() else letters[i]
+                val char = if (isSymbolMode) syms[i] else if (isShifted) letters[i].uppercase() else letters[i]
                 KbKey(
                     label = char,
-                    subLabel = syms[i],
+                    subLabel = if (isSymbolMode || isCompact) null else syms[i],
                     textColor = textCyan,
                     bgColor = keyBg,
                     borderColor = keyBorder,
+                    keyHeight = keyHeight,
+                    isCompact = isCompact,
                     modifier = Modifier.weight(1f),
                     onClick = {
                         onCharTyped(char)
-                        if (isShifted) isShifted = false
+                        if (isShifted && !isSymbolMode) isShifted = false
                     }
                 )
             }
         }
 
-        // Row 3: A S D F G H J K L with secondary symbols @ # & * - + = ( )
+        // Row 3: A..L or Symbols
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isCompact) 6.dp else 10.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             val letters = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
             val syms = listOf("@", "#", "&", "*", "-", "+", "=", "(", ")")
             for (i in letters.indices) {
-                val char = if (isShifted) letters[i].uppercase() else letters[i]
+                val char = if (isSymbolMode) syms[i] else if (isShifted) letters[i].uppercase() else letters[i]
                 KbKey(
                     label = char,
-                    subLabel = syms[i],
+                    subLabel = if (isSymbolMode || isCompact) null else syms[i],
                     textColor = textCyan,
                     bgColor = keyBg,
                     borderColor = keyBorder,
+                    keyHeight = keyHeight,
+                    isCompact = isCompact,
                     modifier = Modifier.weight(1f),
                     onClick = {
                         onCharTyped(char)
-                        if (isShifted) isShifted = false
+                        if (isShifted && !isSymbolMode) isShifted = false
                     }
                 )
             }
         }
 
-        // Row 4: Shift, Z X C V B N M with symbols ~ $ " ' : ; /, Backspace
+        // Row 4: Shift, Z..M or Symbols, Backspace
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            // Shift
             KbKey(
-                label = "⇧",
+                label = if (isSymbolMode) "#=" else "⇧",
                 subLabel = null,
                 textColor = if (isShifted) Color.White else textCyan,
                 bgColor = if (isShifted) Color(0xFF1E3A5F) else keyBg,
                 borderColor = if (isShifted) textCyan else keyBorder,
+                keyHeight = keyHeight,
+                isCompact = isCompact,
                 modifier = Modifier.weight(1.3f),
-                onClick = { isShifted = !isShifted }
+                onClick = { if (!isSymbolMode) isShifted = !isShifted }
             )
 
             val letters = listOf("z", "x", "c", "v", "b", "n", "m")
             val syms = listOf("~", "$", "\"", "'", ":", ";", "/")
             for (i in letters.indices) {
-                val char = if (isShifted) letters[i].uppercase() else letters[i]
+                val char = if (isSymbolMode) syms[i] else if (isShifted) letters[i].uppercase() else letters[i]
                 KbKey(
                     label = char,
-                    subLabel = syms[i],
+                    subLabel = if (isSymbolMode || isCompact) null else syms[i],
                     textColor = textCyan,
                     bgColor = keyBg,
                     borderColor = keyBorder,
+                    keyHeight = keyHeight,
+                    isCompact = isCompact,
                     modifier = Modifier.weight(1f),
                     onClick = {
                         onCharTyped(char)
-                        if (isShifted) isShifted = false
+                        if (isShifted && !isSymbolMode) isShifted = false
                     }
                 )
             }
 
-            // Backspace
             KbKey(
                 label = "⌫",
                 subLabel = null,
                 textColor = textCyan,
                 bgColor = keyBg,
                 borderColor = keyBorder,
+                keyHeight = keyHeight,
+                isCompact = isCompact,
                 modifier = Modifier.weight(1.3f),
                 onClick = onBackspace
             )
         }
 
-        // Row 5: 123, Emoji, comma, spacebar, dot/symbols, Enter
+        // Row 5: 123/ABC, /, comma, spacebar, dot, Enter
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             KbKey(
-                label = "123",
+                label = if (isSymbolMode) "ABC" else "123",
                 subLabel = null,
-                textColor = textCyan,
-                bgColor = keyBg,
-                borderColor = keyBorder,
-                modifier = Modifier.weight(1.2f),
-                onClick = { onCharTyped(";") }
+                textColor = if (isSymbolMode) Color.White else textCyan,
+                bgColor = if (isSymbolMode) Color(0xFF1E3A5F) else keyBg,
+                borderColor = if (isSymbolMode) textCyan else keyBorder,
+                keyHeight = keyHeight,
+                isCompact = isCompact,
+                modifier = Modifier.weight(1.25f),
+                onClick = { isSymbolMode = !isSymbolMode }
             )
 
             KbKey(
-                label = "☺",
+                label = "/",
                 subLabel = null,
                 textColor = textCyan,
                 bgColor = keyBg,
                 borderColor = keyBorder,
+                keyHeight = keyHeight,
+                isCompact = isCompact,
                 modifier = Modifier.weight(1f),
-                onClick = { onCharTyped(":") }
+                onClick = { onCharTyped("/") }
             )
 
             KbKey(
-                label = ",",
+                label = "-",
                 subLabel = null,
                 textColor = textCyan,
                 bgColor = keyBg,
                 borderColor = keyBorder,
+                keyHeight = keyHeight,
+                isCompact = isCompact,
                 modifier = Modifier.weight(1f),
-                onClick = { onCharTyped(",") }
+                onClick = { onCharTyped("-") }
             )
 
-            // Spacebar with neon cyan glow underline (Pixel Clone)
+            // Spacebar with neon cyan glow underline
             Box(
                 modifier = Modifier
-                    .weight(4.5f)
-                    .height(38.dp)
+                    .weight(4.4f)
+                    .height(keyHeight)
                     .clip(RoundedCornerShape(6.dp))
                     .background(keyBg)
                     .border(1.dp, keyBorder, RoundedCornerShape(6.dp))
                     .clickable { onCharTyped(" ") }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 8.dp, vertical = if (isCompact) 4.dp else 6.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
                 Box(
@@ -221,10 +239,12 @@ fun TermuxSoftKeyboard(
 
             KbKey(
                 label = ".",
-                subLabel = "!? ",
+                subLabel = if (isCompact) null else "!?",
                 textColor = textCyan,
                 bgColor = keyBg,
                 borderColor = keyBorder,
+                keyHeight = keyHeight,
+                isCompact = isCompact,
                 modifier = Modifier.weight(1f),
                 onClick = { onCharTyped(".") }
             )
@@ -236,6 +256,8 @@ fun TermuxSoftKeyboard(
                 textColor = Color.White,
                 bgColor = Color(0xFF132238),
                 borderColor = textCyan.copy(alpha = 0.5f),
+                keyHeight = keyHeight,
+                isCompact = isCompact,
                 modifier = Modifier.weight(1.4f),
                 onClick = onEnter
             )
@@ -250,12 +272,14 @@ private fun KbKey(
     textColor: Color,
     bgColor: Color,
     borderColor: Color,
+    keyHeight: Dp,
+    isCompact: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Box(
         modifier = modifier
-            .height(38.dp)
+            .height(keyHeight)
             .clip(RoundedCornerShape(6.dp))
             .background(bgColor)
             .border(1.dp, borderColor, RoundedCornerShape(6.dp))
@@ -271,18 +295,23 @@ private fun KbKey(
                 Text(
                     text = subLabel,
                     color = Color(0xFF6B7D96),
-                    fontSize = 8.sp,
+                    fontSize = 7.sp,
                     fontFamily = FontFamily.Monospace,
-                    lineHeight = 9.sp
+                    lineHeight = 8.sp
                 )
             }
             Text(
                 text = label,
                 color = textColor,
-                fontSize = if (label.length > 2) 11.sp else 14.sp,
+                fontSize = when {
+                    isCompact && label.length > 2 -> 9.sp
+                    isCompact -> 12.sp
+                    label.length > 2 -> 10.sp
+                    else -> 13.sp
+                },
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                lineHeight = 15.sp
+                lineHeight = if (isCompact) 12.sp else 14.sp
             )
         }
     }

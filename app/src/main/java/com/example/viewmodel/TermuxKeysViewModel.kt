@@ -65,6 +65,7 @@ data class TermuxKeysUiState(
     val filteredCatalog: List<CatalogItem> = emptyList(),
     val referenceSearch: String = "",
     val selectedReferenceTopicId: String = "ref_termux_syntax",
+    val registeredFunctions: Map<String, String> = emptyMap(),
     val feedbackMessage: String? = null
 )
 
@@ -459,7 +460,30 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
             cmd.isNotBlank() -> {
-                history.add(TerminalLine("[Simulated Output] Executed: $cmd"))
+                val cmdName = cmd.split(Regex("\\s+")).firstOrNull() ?: ""
+                val registeredBody = _uiState.value.registeredFunctions[cmdName]
+                if (registeredBody != null) {
+                    val args = cmd.removePrefix(cmdName).trim()
+                    val firstArg = args.split(Regex("\\s+")).firstOrNull()?.takeIf { it.isNotBlank() } ?: "Quick sync"
+                    history.add(TerminalLine("-> Running custom function '$cmdName'...", isSystem = true))
+                    registeredBody.lines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.forEach { line ->
+                        val expanded = line
+                            .replace("\${1:-Quick sync}", firstArg)
+                            .replace("\${1:-.}", args.ifBlank { "." })
+                            .replace("\${1:-8080}", args.ifBlank { "8080" })
+                            .replace("\$1", firstArg)
+                            .replace("\$@", args)
+                            .replace("\$msg", firstArg)
+                        if (expanded.startsWith("echo ")) {
+                            history.add(TerminalLine(expanded.removePrefix("echo ").trim('"', '\'')))
+                        } else {
+                            history.add(TerminalLine("  \$ $expanded"))
+                        }
+                    }
+                    history.add(TerminalLine("[OK] '$cmdName' completed (exit code 0).", isSystem = true))
+                } else {
+                    history.add(TerminalLine("[Simulated Output] Executed: $cmd"))
+                }
             }
         }
 
@@ -471,6 +495,14 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
                 commandHistory = cmdHistory,
                 historyIndex = -1
             )
+        }
+    }
+
+    fun registerCustomFunction(name: String, body: String) {
+        val cleanName = name.trim()
+        if (cleanName.isBlank()) return
+        _uiState.update { state ->
+            state.copy(registeredFunctions = state.registeredFunctions + (cleanName to body))
         }
     }
 
@@ -639,10 +671,16 @@ class TermuxKeysViewModel(application: Application) : AndroidViewModel(applicati
                 _uiState.update { it.copy(shellInput = newInput, shellCursor = cursor + toPaste.length, feedbackMessage = "Pasted sample clipboard text") }
             }
             else -> {
-                // Text macro or symbol insertion
-                val insert = key
-                val newInput = input.substring(0, cursor) + insert + input.substring(cursor)
-                _uiState.update { it.copy(shellInput = newInput, shellCursor = cursor + insert.length) }
+                // Text macro or symbol insertion; if ending with newline, execute immediately
+                if (key.endsWith("\n")) {
+                    val cmdPart = key.trimEnd('\n', '\r')
+                    val combined = input.substring(0, cursor) + cmdPart + input.substring(cursor)
+                    executeCommand(combined)
+                } else {
+                    val insert = key
+                    val newInput = input.substring(0, cursor) + insert + input.substring(cursor)
+                    _uiState.update { it.copy(shellInput = newInput, shellCursor = cursor + insert.length) }
+                }
             }
         }
     }

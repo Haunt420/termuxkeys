@@ -6,12 +6,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,9 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -43,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -52,7 +54,6 @@ import com.example.model.CatalogCategory
 import com.example.model.CatalogItem
 import com.example.model.KeyItem
 import com.example.model.KeyPopup
-import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.MatrixGreen
 import com.example.ui.theme.MatrixGreenBright
@@ -62,7 +63,6 @@ import com.example.ui.theme.TerminalKeyBg
 import com.example.ui.theme.TerminalKeyBorder
 import com.example.ui.theme.TerminalSurface
 import com.example.ui.theme.TerminalSurfaceVariant
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
@@ -80,165 +80,183 @@ fun CatalogScreenView(
     modifier: Modifier = Modifier
 ) {
     var targetRowIndex by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(TerminalBg)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchChanged,
-            placeholder = { Text("Search 60+ keys, macros, signals (e.g. nano, pipe, sigint)...") },
-            leadingIcon = {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = MatrixGreenBright)
-            },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MatrixGreenBright,
-                unfocusedBorderColor = TerminalBorder,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
-            ),
-            modifier = Modifier.fillMaxWidth().testTag("catalog_screen_search")
-        )
+        val isCompact = maxHeight < 460.dp || isImeVisible
 
-        // Custom Bash Function Wizard Quick-Action Banner
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(CyberCyan.copy(alpha = 0.12f))
-                .border(1.dp, CyberCyan.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                .clickable { onOpenBashWizard() }
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .testTag("catalog_open_bash_wizard_banner")
+                .fillMaxSize()
+                .padding(if (isCompact) 8.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
         ) {
+            // Search Bar (always accessible at top)
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchChanged,
+                placeholder = { Text("Search 60+ keys, macros, signals (e.g. nano, pipe, sigint)...", fontSize = 12.sp) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = MatrixGreenBright)
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MatrixGreenBright,
+                    unfocusedBorderColor = TerminalBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                ),
+                modifier = Modifier.fillMaxWidth().testTag("catalog_screen_search")
+            )
+
+            // Category Filter Chips (horizontally scrollable)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                CatalogCategory.entries.forEach { category ->
+                    FilterChip(
+                        selected = category == selectedCategory,
+                        onClick = { onCategorySelected(category) },
+                        label = { Text(category.displayName, fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MatrixGreen.copy(alpha = 0.3f),
+                            selectedLabelColor = MatrixGreenBright
+                        )
+                    )
+                }
+            }
+
+            // Target Row Selection Bar (compact + scrollable so it never wraps/clips in landscape)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(TerminalSurface)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(rememberScrollState()),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        tint = CyberCyan,
-                        modifier = Modifier.size(18.dp)
+                    Text(
+                        text = "Row:",
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
                     )
-                    Column {
-                        Text(
-                            text = "Build Custom Bash Function",
-                            color = MatrixGreenBright,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "Stepwise wizard with syntax verification & direct row install",
-                            color = TextSecondary,
-                            fontSize = 10.sp
+                    for (r in 0 until totalRows.coerceAtLeast(1)) {
+                        FilterChip(
+                            selected = targetRowIndex == r,
+                            onClick = { targetRowIndex = r },
+                            label = { Text("R${r + 1}", fontSize = 10.sp, fontFamily = FontFamily.Monospace) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = CyberCyan.copy(alpha = 0.25f),
+                                selectedLabelColor = CyberCyan
+                            )
                         )
                     }
                 }
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = "Open Wizard",
-                    tint = CyberCyan,
-                    modifier = Modifier.size(16.dp)
+
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "${items.size} keys",
+                    color = MatrixGreenBright,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
                 )
             }
-        }
 
-        // Category Filter Chips
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            CatalogCategory.entries.forEach { category ->
-                FilterChip(
-                    selected = category == selectedCategory,
-                    onClick = { onCategorySelected(category) },
-                    label = { Text(category.displayName, fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MatrixGreen.copy(alpha = 0.3f),
-                        selectedLabelColor = MatrixGreenBright
-                    )
-                )
-            }
-        }
+            // Items List (Wizard banner is placed inside LazyColumn so list stays spacious in landscape & IME-up)
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item(key = "bash_wizard_banner") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CyberCyan.copy(alpha = 0.12f))
+                            .border(1.dp, CyberCyan.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .clickable { onOpenBashWizard() }
+                            .padding(horizontal = 12.dp, vertical = if (isCompact) 6.dp else 8.dp)
+                            .testTag("catalog_open_bash_wizard_banner")
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = CyberCyan,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "Build Custom Bash / Python Function",
+                                        color = MatrixGreenBright,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                    if (!isCompact) {
+                                        Text(
+                                            text = "Stepwise wizard with syntax verification & direct row install",
+                                            color = TextSecondary,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "Open Wizard",
+                                tint = CyberCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
 
-        // Target Row Selection Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(TerminalSurface)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Target Row:",
-                color = TextSecondary,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (r in 0 until totalRows.coerceAtLeast(1)) {
-                    FilterChip(
-                        selected = targetRowIndex == r,
-                        onClick = { targetRowIndex = r },
-                        label = { Text("Row ${r + 1}", fontSize = 10.sp, fontFamily = FontFamily.Monospace) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CyberCyan.copy(alpha = 0.25f),
-                            selectedLabelColor = CyberCyan
-                        )
+                items(items, key = { it.id }) { item ->
+                    CatalogRowItemCard(
+                        item = item,
+                        targetRowIndex = targetRowIndex,
+                        onAdd = {
+                            val popup = if (!item.suggestedPopup.isNullOrBlank()) {
+                                KeyPopup(key = item.suggestedPopup, display = item.suggestedPopup)
+                            } else null
+                            val keyItem = KeyItem(
+                                key = item.keyString,
+                                display = item.defaultDisplay,
+                                popup = popup
+                            )
+                            onAddKeyToRow(keyItem, targetRowIndex)
+                        },
+                        onTest = {
+                            onTestKeyInTerminal(item.keyString)
+                        }
                     )
                 }
-            }
-
-            Text(
-                text = "${items.size} keys",
-                color = MatrixGreenBright,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace
-            )
-        }
-
-        // Items List
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(items, key = { it.id }) { item ->
-                CatalogRowItemCard(
-                    item = item,
-                    targetRowIndex = targetRowIndex,
-                    onAdd = {
-                        val popup = if (!item.suggestedPopup.isNullOrBlank()) {
-                            KeyPopup(key = item.suggestedPopup, display = item.suggestedPopup)
-                        } else null
-                        val keyItem = KeyItem(
-                            key = item.keyString,
-                            display = item.defaultDisplay,
-                            popup = popup
-                        )
-                        onAddKeyToRow(keyItem, targetRowIndex)
-                    },
-                    onTest = {
-                        onTestKeyInTerminal(item.keyString)
-                    }
-                )
             }
         }
     }

@@ -1,20 +1,25 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -78,128 +84,140 @@ fun CatalogPickerSheet(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = TerminalSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, TerminalBorder)
+                .background(Color.Black.copy(alpha = 0.65f))
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .imePadding()
+                .padding(8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                // Top Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Key & Function Catalog",
-                            color = TextPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Text(
-                            text = "Browse ${items.size} terminal shortcuts and commands",
-                            color = TextSecondary,
-                            fontSize = 12.sp
-                        )
-                    }
+            BoxWithConstraints {
+                val isCompact = maxHeight < 460.dp
 
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag("dismiss_catalog_dialog")
+                Surface(
+                    modifier = Modifier
+                        .widthIn(max = 740.dp)
+                        .fillMaxSize(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = TerminalSurface,
+                    border = BorderStroke(1.dp, TerminalBorder)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(if (isCompact) 10.dp else 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChanged,
-                    placeholder = { Text("Search shortcuts, macros, signals (e.g. nano, pipe, sigint)...") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = MatrixGreenBright)
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MatrixGreenBright,
-                        unfocusedBorderColor = TerminalBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("catalog_search_field")
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Category Chips Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    CatalogCategory.entries.forEach { category ->
-                        FilterChip(
-                            selected = category == selectedCategory,
-                            onClick = { onCategorySelected(category) },
-                            label = { Text(category.displayName, fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MatrixGreen.copy(alpha = 0.3f),
-                                selectedLabelColor = MatrixGreenBright
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = TerminalBorder)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Catalog Items List
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(items, key = { it.id }) { item ->
-                        CatalogItemCard(
-                            item = item,
-                            onInsert = {
-                                val popup = if (!item.suggestedPopup.isNullOrBlank()) {
-                                    KeyPopup(key = item.suggestedPopup, display = item.suggestedPopup)
-                                } else null
-
-                                val keyItem = KeyItem(
-                                    key = item.keyString,
-                                    display = item.defaultDisplay,
-                                    popup = popup
+                        // Top Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Key & Function Catalog",
+                                    color = TextPrimary,
+                                    fontSize = if (isCompact) 15.sp else 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
                                 )
-                                onInsertKey(keyItem)
+                                Text(
+                                    text = "Browse ${items.size} terminal shortcuts and commands",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(36.dp).testTag("dismiss_catalog_dialog")
+                            ) {
+                                Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
+                            }
+                        }
+
+                        // Search Bar
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchChanged,
+                            placeholder = { Text("Search shortcuts, macros, signals (e.g. nano, pipe, sigint)...", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = MatrixGreenBright)
                             },
-                            onSetAsPopup = if (onSetAsPopup != null) {
-                                {
-                                    val popup = KeyPopup(
-                                        key = item.keyString,
-                                        display = item.defaultDisplay.ifBlank { item.keyString }
-                                    )
-                                    onSetAsPopup(popup)
-                                }
-                            } else null
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MatrixGreenBright,
+                                unfocusedBorderColor = TerminalBorder,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary
+                            ),
+                            modifier = Modifier.fillMaxWidth().testTag("catalog_search_field")
                         )
+
+                        // Category Chips Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            CatalogCategory.entries.forEach { category ->
+                                FilterChip(
+                                    selected = category == selectedCategory,
+                                    onClick = { onCategorySelected(category) },
+                                    label = { Text(category.displayName, fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MatrixGreen.copy(alpha = 0.3f),
+                                        selectedLabelColor = MatrixGreenBright
+                                    )
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(color = TerminalBorder)
+
+                        // Catalog Items List
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(items, key = { it.id }) { item ->
+                                CatalogItemCard(
+                                    item = item,
+                                    onInsert = {
+                                        val popup = if (!item.suggestedPopup.isNullOrBlank()) {
+                                            KeyPopup(key = item.suggestedPopup, display = item.suggestedPopup)
+                                        } else null
+
+                                        val keyItem = KeyItem(
+                                            key = item.keyString,
+                                            display = item.defaultDisplay,
+                                            popup = popup
+                                        )
+                                        onInsertKey(keyItem)
+                                    },
+                                    onSetAsPopup = if (onSetAsPopup != null) {
+                                        {
+                                            val popup = KeyPopup(
+                                                key = item.keyString,
+                                                display = item.defaultDisplay.ifBlank { item.keyString }
+                                            )
+                                            onSetAsPopup(popup)
+                                        }
+                                    } else null
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -231,7 +249,6 @@ fun CatalogItemCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Keycode badge
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -257,7 +274,6 @@ fun CatalogItemCard(
                     )
                 }
 
-                // Category pill
                 Text(
                     text = item.category.name,
                     color = CyberCyan,
@@ -273,7 +289,6 @@ fun CatalogItemCard(
                 lineHeight = 16.sp
             )
 
-            // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,

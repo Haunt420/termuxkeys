@@ -3,19 +3,26 @@ package com.example.ui.components
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -57,9 +64,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.engine.PropertiesFormatterEngine
 import com.example.model.KeyItem
 import com.example.storage.StorageHelper
-import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.CyberCyan
-import com.example.ui.theme.MatrixGreen
 import com.example.ui.theme.MatrixGreenBright
 import com.example.ui.theme.TerminalBg
 import com.example.ui.theme.TerminalBorder
@@ -86,7 +91,6 @@ fun ExportBottomSheet(
         PropertiesFormatterEngine.generateRunnableBashCommand(rows, style)
     }
 
-    // Storage Access Framework (SAF) file creation launcher
     val createDocLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri: Uri? ->
@@ -97,213 +101,237 @@ fun ExportBottomSheet(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
-        Surface(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = TerminalSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, TerminalBorder)
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.65f))
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .imePadding()
+                .padding(10.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Top Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            BoxWithConstraints {
+                val isCompact = maxHeight < 460.dp
+
+                Surface(
+                    modifier = Modifier
+                        .widthIn(max = 700.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = maxHeight),
+                    shape = RoundedCornerShape(16.dp),
+                    color = TerminalSurface,
+                    border = BorderStroke(1.dp, TerminalBorder)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(if (isCompact) 12.dp else 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
                     ) {
-                        Icon(Icons.Default.Terminal, contentDescription = null, tint = MatrixGreenBright)
-                        Column {
-                            Text(
-                                text = "Export to Termux",
-                                color = TextPrimary,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            Text(
-                                text = "Apply extra keys instantly to Termux",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag("dismiss_export_dialog")
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
-                    }
-                }
-
-                HorizontalDivider(color = TerminalBorder)
-
-                // Export Options Tabs
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = TerminalSurfaceVariant,
-                    contentColor = TextPrimary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = MatrixGreenBright
-                        )
-                    }
-                ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Runnable Script", fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("termux.properties", fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("Quick Guide", fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
-                    )
-                }
-
-                when (selectedTab) {
-                    0 -> {
-                        // Runnable Command Tab
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(
-                                text = "Paste this single command into Termux to write ~/.termux/termux.properties and automatically reload:",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF070A0E))
-                                    .border(1.dp, TerminalBorder, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
-                            ) {
-                                Text(
-                                    text = runnableCommand,
-                                    color = MatrixGreenBright,
-                                    fontSize = 11.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    lineHeight = 16.sp
-                                )
-                            }
-
+                        // Top Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Button(
-                                    onClick = {
-                                        StorageHelper.copyToClipboard(context, "Termux Command", runnableCommand)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MatrixGreenBright,
-                                        contentColor = TerminalBg
-                                    ),
-                                    modifier = Modifier.weight(1f).testTag("copy_runnable_cmd_btn")
-                                ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Copy Script", fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        StorageHelper.shareText(context, "Termux Extra Keys Command", runnableCommand)
-                                    },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan)
-                                ) {
-                                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Terminal, contentDescription = null, tint = MatrixGreenBright)
+                                Column {
+                                    Text(
+                                        text = "Export to Termux",
+                                        color = TextPrimary,
+                                        fontSize = if (isCompact) 15.sp else 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                    Text(
+                                        text = "Apply extra keys instantly to Termux",
+                                        color = TextSecondary,
+                                        fontSize = 11.sp
+                                    )
                                 }
                             }
-                        }
-                    }
 
-                    1 -> {
-                        // Raw termux.properties Tab
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(
-                                text = "Standard properties syntax for ~/.termux/termux.properties:",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF070A0E))
-                                    .border(1.dp, TerminalBorder, RoundedCornerShape(8.dp))
-                                    .padding(12.dp)
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(36.dp).testTag("dismiss_export_dialog")
                             ) {
-                                Text(
-                                    text = formattedProperties,
-                                    color = CyberCyan,
-                                    fontSize = 11.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    lineHeight = 16.sp
+                                Icon(Icons.Default.Close, contentDescription = "Close", tint = TextMuted)
+                            }
+                        }
+
+                        HorizontalDivider(color = TerminalBorder)
+
+                        // Export Options Tabs
+                        TabRow(
+                            selectedTabIndex = selectedTab,
+                            containerColor = TerminalSurfaceVariant,
+                            contentColor = TextPrimary,
+                            indicator = { tabPositions ->
+                                TabRowDefaults.SecondaryIndicator(
+                                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                    color = MatrixGreenBright
                                 )
                             }
+                        ) {
+                            Tab(
+                                selected = selectedTab == 0,
+                                onClick = { selectedTab = 0 },
+                                text = { Text("Runnable Script", fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
+                            )
+                            Tab(
+                                selected = selectedTab == 1,
+                                onClick = { selectedTab = 1 },
+                                text = { Text("termux.properties", fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
+                            )
+                            Tab(
+                                selected = selectedTab == 2,
+                                onClick = { selectedTab = 2 },
+                                text = { Text("Quick Guide", fontSize = 11.sp, fontFamily = FontFamily.Monospace) }
+                            )
+                        }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = {
-                                        createDocLauncher.launch("termux.properties")
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MatrixGreenBright,
-                                        contentColor = TerminalBg
-                                    ),
-                                    modifier = Modifier.weight(1f).testTag("saf_save_file_btn")
-                                ) {
-                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Save via Storage (SAF)", fontWeight = FontWeight.Bold)
+                        // Scrollable Tab Body
+                        Column(
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            when (selectedTab) {
+                                0 -> {
+                                    Text(
+                                        text = "Paste this single command into Termux to write ~/.termux/termux.properties and automatically reload:",
+                                        color = TextSecondary,
+                                        fontSize = 12.sp
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF070A0E))
+                                            .border(1.dp, TerminalBorder, RoundedCornerShape(8.dp))
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            text = runnableCommand,
+                                            color = MatrixGreenBright,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            lineHeight = 16.sp
+                                        )
+                                    }
                                 }
 
-                                OutlinedButton(
-                                    onClick = {
-                                        StorageHelper.copyToClipboard(context, "termux.properties", formattedProperties)
-                                    },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan)
-                                ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Copy Text")
+                                1 -> {
+                                    Text(
+                                        text = "Standard properties syntax for ~/.termux/termux.properties:",
+                                        color = TextSecondary,
+                                        fontSize = 12.sp
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF070A0E))
+                                            .border(1.dp, TerminalBorder, RoundedCornerShape(8.dp))
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(
+                                            text = formattedProperties,
+                                            color = CyberCyan,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+                                }
+
+                                2 -> {
+                                    StepInstruction(step = "1", title = "Copy the Script", desc = "Tap 'Copy Script' on the Runnable Script tab.")
+                                    StepInstruction(step = "2", title = "Open Termux", desc = "Switch over to your Termux terminal app.")
+                                    StepInstruction(step = "3", title = "Paste & Run", desc = "Long press the terminal window, tap 'Paste', then press Enter.")
+                                    StepInstruction(step = "4", title = "Instant Reload", desc = "Settings reload immediately via 'termux-reload-settings'. Your new extra keys bar is active!")
                                 }
                             }
                         }
-                    }
 
-                    2 -> {
-                        // Quick Guide Tab
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            StepInstruction(step = "1", title = "Copy the Script", desc = "Tap 'Copy Script' on the Runnable Script tab.")
-                            StepInstruction(step = "2", title = "Open Termux", desc = "Switch over to your Termux terminal app.")
-                            StepInstruction(step = "3", title = "Paste & Run", desc = "Long press the terminal window, tap 'Paste', then press Enter.")
-                            StepInstruction(step = "4", title = "Instant Reload", desc = "Settings reload immediately via 'termux-reload-settings'. Your new extra keys bar is active!")
+                        // Pinned Bottom Action Row
+                        when (selectedTab) {
+                            0 -> {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            StorageHelper.copyToClipboard(context, "Termux Command", runnableCommand)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MatrixGreenBright,
+                                            contentColor = TerminalBg
+                                        ),
+                                        modifier = Modifier.weight(1f).testTag("copy_runnable_cmd_btn")
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Copy Script", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            StorageHelper.shareText(context, "Termux Extra Keys Command", runnableCommand)
+                                        },
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan)
+                                    ) {
+                                        Icon(Icons.Default.Share, contentDescription = "Share script", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                            1 -> {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            createDocLauncher.launch("termux.properties")
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MatrixGreenBright,
+                                            contentColor = TerminalBg
+                                        ),
+                                        modifier = Modifier.weight(1f).testTag("saf_save_file_btn")
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Save via SAF", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            StorageHelper.copyToClipboard(context, "termux.properties", formattedProperties)
+                                        },
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan)
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Copy Text")
+                                    }
+                                }
+                            }
+                            else -> Unit
                         }
                     }
                 }

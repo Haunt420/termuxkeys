@@ -75,7 +75,7 @@ fun KeyCapButton(
 
     Box(
         modifier = modifier
-            .defaultMinSize(minWidth = if (isCompact) 36.dp else 42.dp, minHeight = if (isCompact) 34.dp else 40.dp)
+            .defaultMinSize(minWidth = if (isCompact) 34.dp else 42.dp, minHeight = if (isCompact) 30.dp else 38.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(bgColor)
             .border(

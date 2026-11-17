@@ -107,92 +107,90 @@ fun ReferenceHubView(
             }
         }
 
-        // Active Topic Header Card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(TerminalSurface)
-                .border(1.dp, TerminalBorder, RoundedCornerShape(12.dp))
-                .padding(14.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = currentTopic.title,
-                    color = MatrixGreenBright,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-                Text(
-                    text = currentTopic.summary,
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp
-                )
-
-                // Related keys row
-                if (currentTopic.relatedKeys.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Related Keys (tap to add to layout):",
-                        color = AmberAccent,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        currentTopic.relatedKeys.forEach { keyStr ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(TerminalKeyBg)
-                                    .border(1.dp, TerminalKeyBorder, RoundedCornerShape(6.dp))
-                                    .clickable {
-                                        onAddKeyToLayout(KeyItem(key = keyStr, display = keyStr))
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Add",
-                                        tint = MatrixGreenBright,
-                                        modifier = Modifier.size(10.dp)
-                                    )
-                                    Text(
-                                        text = keyStr,
-                                        color = TextPrimary,
-                                        fontSize = 11.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Topic Content Sections
+        // Topic Header + Content Sections (Header inside LazyColumn so landscape has full scroll area)
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item(key = "topic_header_${currentTopic.id}") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(TerminalSurface)
+                        .border(1.dp, TerminalBorder, RoundedCornerShape(12.dp))
+                        .padding(14.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = currentTopic.title,
+                            color = MatrixGreenBright,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = currentTopic.summary,
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp
+                        )
+
+                        if (currentTopic.relatedKeys.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Related Keys (tap to add to layout):",
+                                color = AmberAccent,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                currentTopic.relatedKeys.forEach { keyStr ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(TerminalKeyBg)
+                                            .border(1.dp, TerminalKeyBorder, RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                onAddKeyToLayout(KeyItem(key = keyStr, display = keyStr))
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Add",
+                                                tint = MatrixGreenBright,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                            Text(
+                                                text = keyStr,
+                                                color = TextPrimary,
+                                                fontSize = 11.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             items(currentTopic.sections) { section ->
                 SectionCard(section = section, context = context)
             }

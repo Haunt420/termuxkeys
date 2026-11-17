@@ -6,12 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,21 +21,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,7 +51,6 @@ import com.example.ui.theme.TerminalBorder
 import com.example.ui.theme.TerminalSurface
 import com.example.ui.theme.TerminalSurfaceVariant
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
 @Composable
@@ -76,22 +69,26 @@ fun KeypadEditorView(
     onOpenBashWizard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(TerminalBg)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Top Toolbar: Style & Quick Actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        val isCompact = maxHeight < 460.dp
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(if (isCompact) 8.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 10.dp)
         ) {
+            // Top Toolbar: Horizontally scrollable so controls never clip on narrow or landscape screens
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Style:",
@@ -117,9 +114,7 @@ fun KeypadEditorView(
                         selectedLabelColor = CyberCyan
                     )
                 )
-            }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedButton(
                     onClick = onOpenBashWizard,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = AmberAccent),
@@ -140,38 +135,38 @@ fun KeypadEditorView(
                     Text("Presets", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                 }
             }
-        }
 
-        // Visual Rows Editor
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            itemsIndexed(rows) { rowIndex, rowKeys ->
-                RowEditorCard(
-                    rowIndex = rowIndex,
-                    keys = rowKeys,
-                    totalRows = rows.size,
-                    selectedCol = if (selectedRow == rowIndex) selectedCol else null,
-                    onSelectKey = { colIndex -> onSelectKey(rowIndex, colIndex) },
-                    onAddKey = { onAddKeyToRow(rowIndex) },
-                    onRemoveRow = { onRemoveRow(rowIndex) }
-                )
-            }
+            // Visual Rows Editor
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
+            ) {
+                itemsIndexed(rows) { rowIndex, rowKeys ->
+                    RowEditorCard(
+                        rowIndex = rowIndex,
+                        keys = rowKeys,
+                        totalRows = rows.size,
+                        selectedCol = if (selectedRow == rowIndex) selectedCol else null,
+                        onSelectKey = { colIndex -> onSelectKey(rowIndex, colIndex) },
+                        onAddKey = { onAddKeyToRow(rowIndex) },
+                        onRemoveRow = { onRemoveRow(rowIndex) }
+                    )
+                }
 
-            item {
-                if (rows.size < 4) {
-                    OutlinedButton(
-                        onClick = onAddNewRow,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .testTag("add_new_row_btn"),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MatrixGreenBright)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add New Row (${rows.size + 1}/4)", fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                item {
+                    if (rows.size < 4) {
+                        OutlinedButton(
+                            onClick = onAddNewRow,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .testTag("add_new_row_btn"),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MatrixGreenBright)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Add New Row (${rows.size + 1}/4)", fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
                     }
                 }
             }
@@ -198,7 +193,6 @@ fun RowEditorCard(
             .padding(12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Row Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -246,7 +240,6 @@ fun RowEditorCard(
                 }
             }
 
-            // Keys in Row with Add button at end
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -263,7 +256,6 @@ fun RowEditorCard(
                     )
                 }
 
-                // Add Key to Row Button
                 Box(
                     modifier = Modifier
                         .size(46.dp, 48.dp)
